@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = ["numpy"]
 
 [project.optional-dependencies]
-dev = ["pytest", "matplotlib", "scipy"]
+dev = ["pytest", "matplotlib", "scipy", "mpmath"]
 
 [build-system]
 requires = ["setuptools>=68"]

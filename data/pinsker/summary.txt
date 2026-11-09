@@ -1,0 +1,10 @@
+coefficients to degree 400 in 12.3s
+t2..t60 positive: True
+t62..t96 negative: True
+sign blocks to degree 400: [(2, 60, '+'), (62, 96, '-'), (98, 140, '+'), (142, 184, '-'), (186, 226, '+'), (228, 270, '-'), (272, 314, '+'), (316, 356, '-'), (358, 400, '+')]
+counts: 117 positive, 83 negative
+R50 on [9.9212, 9.9213]: [-0.00377, -0.00377]
+R48 sampled on (0, 40], 8000 points: all positive = True; minimum 5.7175e-132
+R50 sampled: minimum -0.0037679 at t=9.92
+limit of normalised derivative, 50*t50 = 3.2191e-15
+t > 8: shifted polynomial has all positive coefficients = True (0 not positive)

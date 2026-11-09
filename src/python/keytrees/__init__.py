@@ -17,4 +17,4 @@ EXAMPLES::
     1.6666666666666665
 """
 
-__all__ = ["capacity", "core", "errors", "flora"]
+__all__ = ["capacity", "core", "errors", "flora", "pinsker"]
