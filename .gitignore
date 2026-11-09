@@ -19,3 +19,4 @@ monograph/*.lot
 monograph/*.synctex*
 monograph/main.pdf
 .claude/settings.local.json
+monograph/DescriptionTexts.txt
