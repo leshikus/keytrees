@@ -101,7 +101,7 @@ def taylor_coefficients(degree: int) -> dict[int, Fraction]:
 
 def parametrisation(t, mp):
     r"""
-    Return `(V(t),L(t))`, using the arithmetic of the module ``mp`` (``mpmath`` or ``mpmath.iv``).
+    Return `(V(t),L(t))`, using the arithmetic of the module ``mp``, normally ``mpmath``.
 
     EXAMPLES::
 
