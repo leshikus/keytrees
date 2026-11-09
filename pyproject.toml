@@ -3,6 +3,7 @@ name = "keytrees"
 version = "0.1.0"
 description = "Identification keys and search trees: code extracted from 1998-1999 research and extended"
 requires-python = ">=3.11"
+license = {text = "GPL-2.0-or-later"}
 dependencies = ["numpy"]
 
 [project.optional-dependencies]
