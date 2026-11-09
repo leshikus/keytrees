@@ -1,0 +1,20 @@
+[project]
+name = "keytrees"
+version = "0.1.0"
+description = "Identification keys and search trees: code extracted from 1998-1999 research and extended"
+requires-python = ">=3.11"
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+dev = ["pytest", "matplotlib", "scipy"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src/python"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src/python"]

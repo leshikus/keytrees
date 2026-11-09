@@ -1,0 +1,20 @@
+.venv/
+build/
+__pycache__/
+*.pyc
+.pytest_cache/
+# LaTeX intermediates; monograph.pdf itself is committed
+monograph/**/*.aux
+monograph/*.bbl
+monograph/*.bcf
+monograph/*.blg
+monograph/*.fdb_latexmk
+monograph/*.fls
+monograph/*.log
+monograph/*.out
+monograph/*.run.xml
+monograph/*.toc
+monograph/*.lof
+monograph/*.lot
+monograph/*.synctex*
+monograph/main.pdf
