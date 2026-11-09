@@ -18,6 +18,18 @@ def test_corduliinae_cost():
     assert 0.6 * 1 + 0.3 * 2 + 0.1 * 2 == pytest.approx(1.4)
 
 
+def test_moehringia_costs_with_frequencies():
+    character_1_first = 0.15 * 1 + 0.15 * 2 + 0.7 * 2
+    character_2_first = 0.7 * 1 + 0.15 * 2 + 0.15 * 2
+    assert character_1_first == pytest.approx(1.85)
+    assert character_2_first == pytest.approx(1.3)
+
+
+def test_kraft_lists():
+    assert sum(2.0**-n for n in (1, 2, 3, 3)) <= 1
+    assert sum(2.0**-n for n in (1, 1, 2)) > 1
+
+
 def test_huffman_and_entropy():
     p = [0.4, 0.3, 0.2, 0.1]
     assert huffman_cost(p) == pytest.approx(1.9)
