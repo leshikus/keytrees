@@ -7,7 +7,7 @@
 // a uniformly random unused position, and that test is charged even when it
 // does not split the words. A node holding at most s words tests only positions
 // that do split them. So:
-//   s = 1    plain trie: the literal "random position" algorithm R
+//   s = 1    plain trie: every random position is charged
 //   s = 2    t(n,2) = 1 enforced
 //   s = 3    t(n,2) = 1, t(n,3) = 5/3 enforced: the recurrence behind the 1999
 //            table and the bound log2 m + 29/28 - log2(2m)/m
