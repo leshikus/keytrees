@@ -1,8 +1,13 @@
-"""Generate figures and small LaTeX tables for the monograph from data/."""
+"""Generate figures and small LaTeX tables for the monograph from data/.
+
+The monograph lives in the `codes` repository, by default checked out next to
+this one; set CODES_DIR to point elsewhere.
+"""
 from __future__ import annotations
 
 import csv
 import math
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -14,8 +19,9 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
-FIG = ROOT / "monograph" / "figures"
-GEN = ROOT / "monograph" / "generated"
+CODES = Path(os.environ.get("CODES_DIR", ROOT.parent / "codes"))
+FIG = CODES / "monograph" / "figures"
+GEN = CODES / "monograph" / "generated"
 INK = "#222222"
 COLORS = {"s1": "#b2182b", "s2": "#ef8a62", "s3": "#2166ac", "patricia": "#1b7837"}
 LABELS = {"s1": r"$R_1$ (trie)", "s2": r"$R_2$", "s3": r"$R_3$", "patricia": r"$R_\infty$ (PATRICIA)"}

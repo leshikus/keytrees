@@ -4,6 +4,9 @@
 # Set CXXFLAGS=-stdlib=libc++ if the default C++ library lacks <print>.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The monograph and the decoded artifacts are in the codes repository.
+CODES_DIR=${CODES_DIR:-../codes}
+export CODES_DIR
 
 cmake -S src/cpp -B build/cpp -G Ninja -DCMAKE_CXX_COMPILER="${CXX:-clang++}"
 cmake --build build/cpp
@@ -23,8 +26,8 @@ for c in 1.2 1.5 2.0; do
   build/cpp/rta sweep "$c" 6 127 200 "$seed" "data/rerun/uniform_$tag.csv" uniform 48; seed=$((seed + 1))
   build/cpp/rta sweep "$c" 6 127 200 "$seed" "data/rerun/random_$tag.csv" random 0; seed=$((seed + 1))
 done
-.venv/bin/python scripts/parse_legacy.py artifacts/results-1999 data/legacy
+.venv/bin/python scripts/parse_legacy.py "$CODES_DIR/artifacts/results-1999" data/legacy
 
 .venv/bin/python -m pytest -q
 .venv/bin/python scripts/make_figures.py
-scripts/build_monograph.sh
+"$CODES_DIR/scripts/build_monograph.sh"
