@@ -1,7 +1,7 @@
 # keytrees
 
 Code behind *Cost Estimates for Decision Trees* (the monograph) and the articles
-that follow it: trees for identification, search and aggregation. The texts are
+that follow it: trees for identification and search. The texts are
 in the separate `codes` repository; check it out next to this one, or set
 `CODES_DIR`.
 
@@ -26,4 +26,4 @@ libboost-dev`; for the texts, `texlive-full latexmk biber`.
 
 ## Licence
 
-GPL-2.0-or-later; see `LICENSE`.
+MIT; see `LICENSE`.

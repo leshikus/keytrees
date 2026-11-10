@@ -10,7 +10,7 @@ everything here that states a number.
 - Every number in a text needs a test in `tests/` or a file in `data/`. Tests for
   an article are named `tests/test_<article-folder>.py`, data go in
   `data/<article-folder>/`.
-- Code is GPL-2.0-or-later. Keep personal data out. The repo is private; before
-  making it public, get the agreement of the co-authors of unpublished material
-  (A. P. Ryzhov for the aggregation code, B. Ya. Ryabko for the minimax work).
+- Code is MIT-licensed and the repo is public. Keep personal data out, and keep
+  out code for the aggregation model (A. P. Ryzhov's unpublished work): it lives
+  in the `codes` repository.
 - Commit and push when work is verified.
