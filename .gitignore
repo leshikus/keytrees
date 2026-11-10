@@ -20,3 +20,13 @@ monograph/*.synctex*
 monograph/main.pdf
 .claude/settings.local.json
 monograph/DescriptionTexts.txt
+*.egg-info/
+# Article build intermediates; article.pdf is committed
+articles/**/*.aux
+articles/**/*.bbl
+articles/**/*.blg
+articles/**/*.fdb_latexmk
+articles/**/*.fls
+articles/**/*.log
+articles/**/*.out
+articles/**/*.synctex*
