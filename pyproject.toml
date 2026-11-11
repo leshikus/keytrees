@@ -19,3 +19,4 @@ where = ["src/python"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src/python"]
+addopts = "-m 'not slow'"
