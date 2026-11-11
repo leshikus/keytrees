@@ -152,7 +152,10 @@ def test_step_constants():
 
 def test_gap_certificate():
     cert = gap_certificate(m=8, j=3, i=4, kappa=Fraction(1, 2), h0=128)
-    assert len(cert) - 1 == 17 and all(c >= 0 for c in cert)
+    # Coefficients in powers of H - 128; the list is padded, the true degree is 15.
+    degree = max(i for i, c in enumerate(cert) if c != 0)
+    assert degree == 15 and cert[degree] == Fraction(4, 2835)
+    assert all(c >= 0 for c in cert)
     for n in range(8, 13):
         D = convex_order_gaps(n, 8)
         assert 2 * D[3] >= D[4]
