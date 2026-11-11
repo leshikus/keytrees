@@ -1,0 +1,31 @@
+quantity,m,n,o_max,seconds_last_o,stopped_by
+worst,0,0,4000,0.000,reached the cap o = 4000
+worst,0,1,4000,0.880,reached the cap o = 4000
+worst,1,1,4000,1.716,reached the cap o = 4000
+worst,0,2,750,4.273,overall time limit of the run
+worst,1,2,169,130.641,one o took too long
+worst,2,2,942,5.933,overall time limit of the run
+worst,0,3,330,11.069,overall time limit of the run
+worst,1,3,59,78.599,one o took too long
+worst,2,3,69,62.645,one o took too long
+worst,3,3,144,752.295,one o took too long
+average,0,0,4000,0.000,reached the cap o = 4000
+average,0,1,669,5.204,overall time limit of the run
+average,1,1,667,4.181,overall time limit of the run
+average,0,2,127,44.864,overall time limit of the run
+average,1,2,125,42.227,overall time limit of the run
+average,2,2,127,43.810,overall time limit of the run
+average,0,3,52,62.470,one o took too long
+average,1,3,54,63.141,one o took too long
+average,2,3,54,68.744,one o took too long
+average,3,3,54,64.945,one o took too long
+minmax,0,0,4000,0.000,reached the cap o = 4000
+minmax,0,1,513,268.892,one o took too long
+minmax,1,1,585,393.928,one o took too long
+minmax,0,2,129,498.683,one o took too long
+minmax,1,2,113,60.469,one o took too long
+minmax,2,2,89,68.550,one o took too long
+minmax,0,3,56,63.857,one o took too long
+minmax,1,3,51,110.805,one o took too long
+minmax,2,3,51,108.277,one o took too long
+minmax,3,3,51,100.357,one o took too long

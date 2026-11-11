@@ -1,0 +1,3 @@
+variant,c,alpha,k0,m_max,ok,min_margin,argmin,sup_lower,arg_sup_lower
+s3,4311/10000,723/1000,8,1024,True,7.722691e-06,92,0.4303396387,1024
+patricia,8319/25000,723/1000,8,1024,True,6.041429e-06,139,0.3320428717,1024
