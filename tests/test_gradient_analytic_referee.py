@@ -313,3 +313,81 @@ def test_window_closed_form_at_threshold(b, T):
             mass = sum(exp(_hyp_logpmf(s, k, a, x))
                        for x in range(int(lo), int(hi) + 2) if lo <= x <= hi)
             assert mass >= 1.27 * b * g
+
+
+# ------------------------------------------- Step 6: constants of Theorem C
+
+def _h2(p):
+    return 0.0 if p in (0, 1) else -p * log2(p) - (1 - p) * log2(1 - p)
+
+
+def _Lambda(b, T, s, theta):
+    """Step 2's Lambda(b, T, s) for the angle theta."""
+    R = T + b * sqrt(theta)
+    rho = 2 * R / ((1 - theta) * sqrt(s))
+    u0 = b * sqrt((1 - theta) * s)
+    nu = max(0.5, 1 - 1 / (2 * u0))
+    return (nu / (1 + 1 / ((1 - theta) * s))
+            * exp(-2 * b / (3 * (1 - theta) ** 1.5 * sqrt(s))
+                  - (2 * b * b + 2 * R * R / (1 - theta)) * rho * rho / (1 - rho * rho)))
+
+
+def step6_constants(b=0.05, T=1.25, s1=210):
+    """Independent float evaluation of Step 3's closed forms at Step 6's choice."""
+    th = 0.5 + b / sqrt(s1)
+    ap, am = th, 1 - th
+    A = sqrt(2 * (1 + 1 / s1) / (pi * th * (1 - th))) * exp(2 * T * T / s1 + 8 * T ** 4 / (s1 - 4 * T * T))
+    eta = max((2 * b * sqrt(ap) + 1 / sqrt(s1)) * A, exp(-2 * max(sqrt(am) * T - b, 0) ** 2))
+    M = am / (1 - eta - ap)
+    ghat = lambda y: ap ** -0.5 * exp(-(2 * ap * y + 2 * b * b / 3) / am)
+    c1 = 2 * b * sqrt(2 / pi) * _Lambda(b, T, s1, th) * (ghat(M / 4) - ghat(T * T) * M / (4 * T * T))
+    # (P): Step 2's range at s1
+    assert 4 * b * b * (1 - th) * s1 >= 1
+    assert 2 * (T + b * sqrt(th)) < (1 - th) * sqrt(s1)
+    return eta, M, c1
+
+
+def test_step6_theorem_C_constants():
+    eta, M, c1 = step6_constants()
+    assert abs(eta - 0.25144) < 1e-4 and eta < 1 - (0.5 + 0.05 / sqrt(210))
+    assert abs(M - 2.02583) < 1e-3
+    assert c1 >= 0.00716 and c1 < 0.0073
+
+
+def test_step6_budget_line():
+    """B'(m) <= u + v log m with u <= 17.14, v <= 0.4548 (theta_4 = 3/4, sigma = 34)."""
+    th, sig = 0.75, 34
+    v = (1 - _h2(th)) / log2(1 / th)
+    small = sum(1 - _h2(1 / s) for s in range(3, sig))
+    u = small + (1 - _h2(th)) * (1 - log2(sig) / log2(1 / th))
+    assert v <= 0.4548 and u <= 17.14
+    for lam in range(6, 200):
+        dstar = (lam - log2(sig)) / log2(1 / th)
+        Bp = (1 - _h2(th)) * (int(dstar) + 1) + small
+        assert Bp <= u + v * lam + 1e-9
+
+
+def test_step6_p_minimum_float():
+    """Step 5's exact minimum p at Step 6's choice (b = 1/20, T_5^2 <= 1.012913, s_1 = 210),
+    in floating point: at least 0.010129."""
+    from math import lgamma
+    b, s1, T5 = 0.05, 210, sqrt(1.012913)
+    lc = lambda N, K: lgamma(N + 1) - lgamma(K + 1) - lgamma(N - K + 1)
+    best = 1.0
+    N = s1 + 1
+    while N / 2 - b * sqrt(N) <= s1:
+        kmin = int(N / 2 - T5 * sqrt(N)) - 1
+        for k in range(max(kmin, 0), N + 1):
+            if abs(k - N / 2) > T5 * sqrt(N):
+                if k > N / 2:
+                    break
+                continue
+            for u in range(2, int(min(s1, N / 2 + b * sqrt(N))) + 1):
+                xs = {u // 2, (u + 1) // 2}
+                pr = 0.0
+                for x in xs:
+                    if 0 <= x <= k and 0 <= u - x <= N - k:
+                        pr += exp(lc(k, x) + lc(N - k, u - x) - lc(N, u))
+                best = min(best, pr)
+        N += 1
+    assert best >= 0.010129 and best < 0.0102
