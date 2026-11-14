@@ -247,3 +247,45 @@ def test_article_macros_are_upper_bounds():
     assert all(v > 0 for v in mac.values()), "stale placeholder in constants.tex"
     placeholders = re.findall(r"\\newcommand\{\\(\w+)\}\{0\.0+\}", tex)
     assert not placeholders, placeholders
+
+
+def test_path_formula_worked_example():
+    """The worked example of the path formula at (n, m) = (3, 4) in the article."""
+    terms = gb.path_formula_terms(3, 4)
+    chain_42 = {lams: (mult, coef, fn) for (c, lams), (mult, coef, fn) in terms.items() if c == (4, 2)}
+    assert chain_42 == {((2,), (2,)): (3, 1, 56), ((2,), (1, 1)): (3, -1, 296),
+                        ((1, 1), (2,)): (3, -1, 296), ((1, 1), (1, 1)): (3, 1, 1032)}
+    # F_3 = V W1^2 + W0 V W1 + W0^2 V with V = 2, (W0, W1) = (10, 16), (6, 8), (2, 4)
+    for (w0, w1), fn in (((10, 16), 1032), ((6, 8), 296), ((2, 4), 56)):
+        assert 2 * w1 * w1 + w0 * 2 * w1 + w0 * w0 * 2 == fn
+    totals = {}
+    for (c, _), (mult, coef, fn) in terms.items():
+        totals[c] = totals.get(c, 0) + mult * coef * fn
+    assert totals == {(4,): 1680, (4, 2): 1488, (4, 3): 144, (4, 3, 2): 96}
+    assert sum(totals.values()) == 3408 == 8 * 7 * 6 * 5 * Fraction(71, 35)
+    # chain (4, 2) counts the tables whose root splits 2:2
+    import itertools
+
+    def has_even_row(cols):
+        return any(sum((c >> r) & 1 for c in cols) == 2 for r in range(3))
+
+    even = sum(has_even_row(c) for c in itertools.combinations(range(8), 4)) * 24
+    assert even == totals[4, 2] == 1680 - 192
+    assert gb.path_formula(3, 4) == 2 + Fraction(1, 35) == fractions_of("exact_formula.csv")[3, 4]
+
+
+def test_exact_table_delta():
+    """Delta = t - C(m) of the exact table equals the redundancy minus C(m) - log m."""
+    t = fractions_of("exact_formula.csv")
+    assert round(float(t[5, 16] - gb.complete_cost(16)), 4) == 0.0584
+    assert round(float(t[10, 23] - gb.complete_cost(23)), 4) == 0.0014
+
+
+def test_verify_certificates_script():
+    """scripts/verify_certificates.py passes (checksums, c_K, mu, the t^+ sample)."""
+    import subprocess
+    import sys
+
+    path = Path(__file__).resolve().parents[1] / "scripts" / "verify_certificates.py"
+    out = subprocess.run([sys.executable, str(path)], capture_output=True, text=True)
+    assert out.returncode == 0, out.stdout + out.stderr

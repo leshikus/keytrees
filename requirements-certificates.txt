@@ -1,0 +1,7 @@
+# Versions with which scripts/verify_certificates.py and scripts/gradient_bound_data.py
+# produced and re-checked the certificates of articles/gradient-bound.
+# python 3.14.4
+# Install: .venv/bin/pip install -r requirements-certificates.txt -e .
+mpmath==1.4.1
+numpy==2.5.4
+pytest==9.2.0

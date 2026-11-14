@@ -28,6 +28,7 @@ for c in 1.2 1.5 2.0; do
 done
 .venv/bin/python scripts/parse_legacy.py "$CODES_DIR/artifacts/results-1999" data/legacy
 
+.venv/bin/python scripts/verify_certificates.py --full
 .venv/bin/python -m pytest -q -m ""
 .venv/bin/python scripts/make_figures.py
 "$CODES_DIR/scripts/build_monograph.sh"

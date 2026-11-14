@@ -21,6 +21,11 @@ cmake -S src/cpp -B build/cpp -G Ninja -DCMAKE_CXX_COMPILER=clang++
 cmake --build build/cpp
 ```
 
+The certificates of the gradient-key article (constants `c_K`, `c_b`, a sample of `t^+`)
+are re-checked from scratch, with the data files' SHA-256 sums, by
+`.venv/bin/python scripts/verify_certificates.py` (add `--full` to recompute `c_b`); the
+versions used are pinned in `requirements-certificates.txt`.
+
 Packages on Ubuntu: `clang llvm lld cmake ninja-build python3-venv libgmp-dev
 libboost-dev`; for the texts, `texlive-full latexmk biber`.
 

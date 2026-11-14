@@ -199,14 +199,15 @@ def tex() -> None:
     lines.append(rf"\newcommand{{\exactrange}}{{{text}}}")
     (art / "constants.tex").write_text("\n".join(lines) + "\n")
 
-    rows = [r"\begin{tabular}{rcccccccc}", r"\toprule",
-            r"$m$ & \multicolumn{2}{c}{$c=1.2$} & \multicolumn{2}{c}{$c=1.5$} & \multicolumn{2}{c}{$c=2$} & $C(m)-\log m$ \\",
-            r" & $n$ & & $n$ & & $n$ & & \\", r"\midrule"]
+    rows = [r"\begin{tabular}{rccccccccccc}", r"\toprule",
+            r"$m$ & \multicolumn{3}{c}{$c=1.2$} & \multicolumn{3}{c}{$c=1.5$} & \multicolumn{3}{c}{$c=2$} & $C(m)-\log m$ \\",
+            r" & $n$ & & $\Delta$ & $n$ & & $\Delta$ & $n$ & & $\Delta$ & \\", r"\midrule"]
     for m in (4, 6, 8, 11, 12, 16, 20, 23, 24, 28, 32):
         cells = []
         for c in (1.2, 1.5, 2):
             n = math.ceil(c * math.log2(m))
-            cells += [str(n), f"{red[n, m]:.4f}" if (n, m) in red else ""]
+            delta = f"{float(t[n, m] - complete_cost(m)):.4f}" if (n, m) in t else ""
+            cells += [str(n), f"{red[n, m]:.4f}" if (n, m) in red else "", delta]
         rows.append(f"{m} & " + " & ".join(cells) + f" & {float(complete_cost(m)) - math.log2(m):.4f} " + r"\\")
     rows += [r"\bottomrule", r"\end{tabular}"]
     (art / "exact_table.tex").write_text("\n".join(rows) + "\n")

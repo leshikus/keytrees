@@ -46,6 +46,7 @@ __all__ = [
     "gradient_cost",
     "exact_average",
     "path_formula",
+    "path_formula_terms",
     "complete_cost",
     "complete_redundancy_sup",
     "distinct_probability",
@@ -162,7 +163,7 @@ def path_formula(n, m):
 
     The sum runs over chains `m = s_0 > \dots > s_d \ge 2` and one integer
     partition of each cell size; see ``src/cpp/gradient_bound.cpp`` for the fast
-    version. No chain is pruned here.
+    version. No chain is pruned here. The terms are :func:`path_formula_terms`.
 
     EXAMPLES::
 
@@ -170,6 +171,25 @@ def path_formula(n, m):
         True
         >>> path_formula(20, 3)
         Fraction(5, 3)
+    """
+
+    tables = math.prod(2**n - i for i in range(m))
+    total = sum(mult * coef * fn for mult, coef, fn in path_formula_terms(n, m).values())
+    return Fraction(total, tables)
+
+
+def path_formula_terms(n, m):
+    r"""
+    Return the terms of the path formula: a dictionary from (chain, partitions of
+    the cells) to the triple (`\prod_j\binom{s_j-1}{s_{j+1}-1}`, `\prod_j c(\lambda_j)`, `F_n`).
+
+    No chain is pruned, so pruned chains appear with `F_n = 0`.
+
+    EXAMPLES::
+
+        >>> terms = path_formula_terms(3, 4)
+        >>> sorted({c: sum(a * b * f for (cc, _), (a, b, f) in terms.items() if cc == c) for c, _ in terms}.items())
+        [((4,), 1680), ((4, 2), 1488), ((4, 3), 144), ((4, 3, 2), 96)]
     """
 
     def chains(s):
@@ -192,7 +212,7 @@ def path_formula(n, m):
             poly = [c if min(k, size - k) <= qj - st else 0 for k, c in enumerate(poly)]
         return sum(poly)
 
-    total = 0
+    terms = {}
     for s in chains(m):
         d = len(s) - 1
         a = [s[j] - s[j + 1] for j in range(d)]
@@ -223,9 +243,8 @@ def path_formula(n, m):
                         w = count(lams[:j], q[:j], strict[:j], own)
                         g[mask | 1 << j] = g.get(mask | 1 << j, 0) + val * w
                 f = g
-            total += mult * coef * f.get((1 << d) - 1, 0)
-    tables = math.prod(2**n - i for i in range(m))
-    return Fraction(total, tables)
+            terms[tuple(s), tuple(map(tuple, lams))] = (mult, coef, f.get((1 << d) - 1, 0))
+    return terms
 
 
 def complete_cost(m):
