@@ -40,7 +40,7 @@ iv.dps = 50
 __all__ = [
     "ivq", "lo", "hi", "GAMMA", "LOG2E", "a_iv", "lambda_iv", "eta_bar_iv", "m_star_iv", "c1_iv",
     "check_P", "h_iv", "sigma_constant", "budget_upper", "p_float_scan", "p_certify",
-    "p_range", "lipschitz_f", "error_terms", "delta_needed", "q_d_lower",
+    "p_range", "lipschitz_f", "error_terms", "delta_needed", "q_d_lower", "filter_variant_iv",
 ]
 
 
@@ -233,6 +233,48 @@ def c1_iv(b, T, s1, theta1=None) -> iv.mpf:
         return iv.exp(-(2 * ap * y + 2 * bi * bi / 3) / am) / iv.sqrt(ap)
     lam = lambda_iv(bi, Ti, s1, th)
     return 2 * bi * iv.sqrt(2 / iv.pi) * lam * (g(M / 4) - g(Ti * Ti) * M / (4 * Ti * Ti))
+
+
+def filter_variant_iv(b_h, b_w, T, sigma1, theta1):
+    r"""
+    The constants `(\bar\eta, M^*, c_1)` of the filter for fixed nested sets with central
+    holes of radius `b_h` and window `b_w` (Step 3, Prop. filter-variant; Proposition A.13 of
+    the article's appendix), with ratio range `[1-\theta_1,\theta_1]` and size bound
+    `\sigma_1`. Hypotheses checked: `\sigma_1 \ge 100`, `\theta_1 \in (1/2, 7/10]`,
+    `1 \le T \le \sqrt{\sigma_1/8}`, Step 2's range for `(b_w, T, \sigma_1, \theta_1)`, and
+    `\bar\eta < 1-\theta_1`. Here `b_h` may be an interval.
+
+    EXAMPLES::
+
+        >>> from fractions import Fraction as F
+        >>> from keytrees.gradient_analytic_6 import filter_variant_iv, ivq
+        >>> from mpmath import iv
+        >>> eb, M, c1 = filter_variant_iv(ivq('0.068') / iv.sqrt(ivq('0.99')), F('0.068'), 2, 99000, F(3, 5))
+        >>> float(M.b) < 1.81 and float(c1.a) > 0.0338
+        True
+    """
+    th = theta1 if isinstance(theta1, iv.mpf) else ivq(theta1)
+    bh = b_h if isinstance(b_h, iv.mpf) else ivq(b_h)
+    bw = b_w if isinstance(b_w, iv.mpf) else ivq(b_w)
+    Ti, s = ivq(T), ivq(sigma1)
+    assert sigma1 >= 100 and th.a > 0.5 and th.b <= 0.7
+    assert 1 <= F(T) and 8 * F(T) ** 2 <= sigma1
+    gap = 1 - th
+    assert (4 * bw * bw * gap * s).a >= 1
+    assert (2 * (Ti + bw * iv.sqrt(th)) - gap * iv.sqrt(s)).b < 0
+    mod = (2 * bh * iv.sqrt(th) + 1 / iv.sqrt(s)) * a_iv(Ti, sigma1, th)
+    ra = iv.sqrt(gap) * Ti - bh
+    assert ra.a > 0
+    eb = _max(mod, iv.exp(-2 * ra * ra))
+    den = 1 - eb - th
+    assert den.a > 0
+    M = gap / den
+
+    def g(y):
+        return iv.exp(-(2 * th * y + 2 * bw * bw / 3) / gap) / iv.sqrt(th)
+    lam = lambda_iv(bw, Ti, sigma1, th)
+    c1 = 2 * bw * iv.sqrt(2 / iv.pi) * lam * (g(M / 4) - g(Ti * Ti) * M / (4 * Ti * Ti))
+    return eb, M, c1
 
 
 # ----------------------------------------------------------------- Step 4

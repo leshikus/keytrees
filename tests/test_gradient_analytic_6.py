@@ -187,3 +187,19 @@ def test_remark_compare_numbers():
     assert 1900 < lo(dL) and hi(dL) < 2100
     # Theorem B remark: 1 - M*/100 >= 0.98 for M* = 1.76.
     assert 1 - F(176, 10**4) >= F(98, 100)
+
+
+def test_theorem_b_constants_certified():
+    """Theorem B (appendix of the article; Step 7 of the notes): b = 0.068, T = 2,
+    theta_1 = 3/5, sigma_1 = 0.99 * 10^5, hole radius b_h = b/sqrt(0.99), window b_w = b.
+    In interval arithmetic: eta_bar < 0.178 < 2/5, M* <= 1.81 <= 2.5, c_1 >= 0.0338.
+    These bound the constants for every s_1 >= 10^5, as they are monotone in sigma_1."""
+    from keytrees.gradient_analytic_6 import filter_variant_iv
+    b = ivq('0.068')
+    eb, M, c1 = filter_variant_iv(b / iv.sqrt(ivq('0.99')), F('0.068'), 2, 99000, F(3, 5))
+    assert eb.b < 0.178
+    assert M.b <= 1.81
+    assert c1.a >= 0.0338
+    # monotone in sigma_1: larger sigma_1 gives smaller eta_bar and M*, larger c_1
+    eb2, M2, c12 = filter_variant_iv(b / iv.sqrt(ivq('0.99')), F('0.068'), 2, 10**7, F(3, 5))
+    assert eb2.b <= eb.b and M2.b <= M.b and c12.a >= c1.a
