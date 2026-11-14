@@ -8,6 +8,8 @@
 //   union     Proposition union, minimised over the finite family of
 //             parameters below
 //   explicit  Corollary explicit, K in {20, 30, 40, 60}, where its hypotheses hold
+//   cylinder  Proposition cylinder, minimised over j in CYL_JS and the (s_1, x)
+//             of "union"
 // with t = 0 for m = 1. The cell must have m <= 2^n.
 //
 // Parameters of "union": a requirement kappa_j(s), for s <= s_1, is the largest
@@ -28,6 +30,8 @@
 // Subcommands:
 //   cell <n> <m> [--no-exact]   all ingredients of one cell, readable
 //   cells [--no-exact]          "n m" pairs on stdin, CSV rows on stdout
+//   kappa <n> <m> <j>           the requirement kappa(s), s = 2..min(m, 2048), of
+//                               ingredient cylinder for j (for the interval checks)
 //   grid [<out.csv>]            the grid of the article (default
 //                               data/gradient-bound/tplus.csv)
 // Option --data <dir> (default data/gradient-bound) locates
@@ -193,7 +197,7 @@ struct Cell {
   long n;
   u64 m;
   double log2m_up, log2m_dn, C_up, C_dn, Cmax_up, Rmax_up, invQD_up;
-  Ingredient exact, trivial, fixed, uni, expl;
+  Ingredient exact, trivial, fixed, uni, expl, cyl;
   double tplus;
   std::string winner, params;
 };
@@ -319,6 +323,161 @@ void ingredient_union(Cell& c) {
   c.uni = best;
 }
 
+// Proposition cylinder (ingredient (f)). For a requirement kappa below s_1, the
+// expected number of forks of size s <= s_1 at which no row has quality kappa(s)
+// is at most P_s = min(C(m,s) f^n, sum_{d<n} C(n,d) 2^d Pr(Bin(m,2^-d)=s) f^{n-d}),
+// f = f_{kappa(s)}(s); each such fork costs at most (s/m) rhobar(s), where
+// rhobar(s) is the maximum in the recursion of rho_kappa over the splits k < kappa(s). A first
+// failing large fork at depth d costs at most s_d R_max(s_d)/m, s_d = floor(theta^d m),
+// and the expected number of such cylinders is at most
+// C(n,d) 2^d min(1, C(m,s_1+1) 2^{-d(s_1+1)}) g^{n-d}.
+// kappa(s) is the largest k with (s/m) rhobar(s) P_s <= 2^-j / s^2, j in CYL_JS (any kappa is valid).
+constexpr int CYL_JS[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 20, 24, 28, 32, 40};
+constexpr long NCYL = 4096;  // the cylinder sum for small forks is used for n <= NCYL
+
+// upper bound of s R_max(s) / m for real s0 >= the size, R_max(s) = (s+1)/2 - 1/s - log s
+double weight_large(double s0, u64 m) {
+  double s = std::floor(s0);
+  if (s < 2) return 0;
+  double rmax = (s + 1) / 2 - dn_div(1.0, s) - dn_div(log_dn(s), LN2_UP);
+  return s * rmax / double(m);
+}
+
+std::vector<int>* KAPPA_OUT = nullptr;  // subcommand kappa: the requirement for one j
+int KAPPA_J = -1;
+
+void ingredient_cylinder(Cell& c) {
+  u64 m = c.m;
+  long n = c.n;
+  if (m < 4 || c.invQD_up == INF) return;
+  int S = int(std::min<u64>(m, S1MAX));
+  constexpr int NJ = sizeof CYL_JS / sizeof CYL_JS[0];
+  // log C(m,s), s <= S
+  std::vector<double> Lm(S + 1, 0);
+  double num = 0;
+  for (int s = 1; s <= S; ++s) {
+    num += log_up(double(m - s + 1));
+    Lm[s] = num - lfD[s];
+  }
+  double lm_dn = log_dn(double(m));
+  // log C(n,d) for d < n, only if the small-fork cylinder sum is used
+  bool use_cyl = n <= NCYL;
+  std::vector<double> LBn, L1p;
+  if (use_cyl) {
+    LBn.assign(n, 0);
+    L1p.assign(n, 0);
+    double a = 0;
+    for (long d = 1; d < n; ++d) {
+      a = a + log_up(double(n - d + 1)) - log_dn(double(d));
+      LBn[d] = a;
+      L1p[d] = d > 1000 ? 0.0 : log1p_up(-std::ldexp(1.0, -int(d)));  // >= log(1 - 2^-d)
+    }
+  }
+  std::vector<std::vector<double>> rho(NJ, std::vector<double>(S + 1, 0)), pm = rho, pc = rho;
+  std::vector<double> A(use_cyl ? n : 0), v(S / 2 + 2), pre(S / 2 + 3);
+  for (int s = 2; s <= S; ++s) {
+    if (use_cyl) {  // A[d] >= log(C(n,d) 2^d Pr(Bin(m, 2^-d) = s))
+      for (long d = 0; d < n; ++d) {
+        if (d == 0) { A[d] = (u64(s) == m) ? 0.0 : -INF; continue; }
+        double ds = double(d) * double(s - 1);  // 2^d 2^{-ds} = 2^{-d(s-1)}
+        A[d] = LBn[d] + Lm[s] + neg(dn_mul(ds, LN2_DN)) + double(m - u64(s)) * L1p[d];
+      }
+    }
+    auto logP = [&](int k) {  // >= log P_s for kappa(s) = k
+      double L = LOGF[s][k];
+      double sub = Lm[s] + double(n) * L;
+      if (!use_cyl) return sub;
+      double M = -INF;
+      for (long d = 0; d < n; ++d) M = std::max(M, A[d] + double(n - d) * L);
+      if (M == -INF) return sub;
+      double sum = 0, cut = M - 40;
+      long few = 0;
+      for (long d = 0; d < n; ++d) {
+        double t = A[d] + double(n - d) * L;
+        if (t < cut) ++few; else sum += exp_up(t - M);
+      }
+      if (few) sum += double(few) * exp_up(cut - M);  // each skipped term is below e^(cut - M)
+      return std::min(sub, M + log_up(sum));
+    };
+    int half = s / 2;
+    for (int ji = 0; ji < NJ; ++ji) {
+      auto& r = rho[ji];
+      for (int k = 1; k <= half; ++k) v[k] = OMH[s][k] + (double(k) / s) * r[k] + (double(s - k) / s) * r[s - k];
+      // a fork that fails kappa(s) = k splits off fewer than k columns: it costs at most
+      // (s/m) max_{j<k} v[j]; pre[k] is that maximum
+      pre[1] = 0;
+      for (int k = 2; k <= half + 1; ++k) pre[k] = std::max(pre[k - 1], v[k - 1]);
+      double thr = -double(CYL_JS[ji]) * LN2_DN - 2 * std::log(double(s));  // log(2^-j / s^2); any kappa is valid
+      double lsm = log_up(double(s)) - lm_dn;   // >= log(s/m)
+      auto test = [&](int k, double& lp) {
+        lp = logP(k);
+        return lsm + log_up(pre[k]) + lp <= thr;
+      };
+      int kap = 1;
+      double lp = -INF, l2;
+      if (half >= 2 && test(2, l2)) {
+        int lo = 2, hi = half;
+        lp = l2;
+        while (lo < hi) {
+          int mid = (lo + hi + 1) / 2;
+          double lpm;
+          if (test(mid, lpm)) { lo = mid; lp = lpm; } else hi = mid - 1;
+        }
+        kap = lo;
+      }
+      double rr = 0;
+      for (int k = kap; k <= half; ++k) rr = std::max(rr, v[k]);
+      r[s] = rr;
+      if (KAPPA_OUT && CYL_JS[ji] == KAPPA_J) KAPPA_OUT->push_back(kap);
+      pm[ji][s] = std::max(pm[ji][s - 1], rr);
+      pc[ji][s] = pc[ji][s - 1] + (kap >= 2 ? exp_up(lsm + log_up(pre[kap]) + lp) : 0.0);
+    }
+  }
+  // large forks, for each (s_1, x)
+  struct Large { int s1; double x, tail, pl; };
+  std::vector<Large> large;
+  if (m <= u64(S1MAX)) large.push_back({int(m), X_SMALL, 0.0, 0.0});
+  double lnm_up = log_up(double(m));
+  for (int s1 : S1S) {
+    if (u64(s1) >= m) continue;
+    // log C(m, s1+1) and log C(n, d) for d <= d*
+    double lbs = 0;
+    for (int i = 1; i <= s1 + 1; ++i) lbs += log_up(double(m - u64(i) + 1));
+    lbs -= (s1 + 1 <= S1MAX ? lfD[s1 + 1] : dn_add(lfD[s1], log_dn(double(s1 + 1))));  // log (s1+1)!
+    for (double x : XS) {
+      if (x >= s1 / 4.0) continue;
+      double theta = 0.5 + std::sqrt(x / s1);
+      if (theta >= 1) continue;
+      double omt = dn_sub(1.0, theta);
+      double tail = 4 * x / dn_mul(double(s1), omt);
+      double ratio = (lnm_up - lnD[s1]) / neg(log_up(theta));
+      long dmax = long(std::min(std::floor(ratio), double(n - 1)));
+      double lg = LN2_UP - 2 * x;  // log g
+      double ltheta = log_up(theta);
+      double ls = -INF, lbn = 0;
+      for (long d = 0; d <= dmax; ++d) {
+        if (d > 0) lbn = lbn + log_up(double(n - d + 1)) - log_dn(double(d));
+        double sd = exp_up(double(d) * ltheta + lnm_up);  // >= theta^d m
+        double w = weight_large(std::min(sd, double(m)), m);
+        if (w <= 0) continue;
+        double lW = double(d) * LN2_UP + std::min(0.0, lbs + neg(dn_mul(double(d) * double(s1 + 1), LN2_DN)));
+        ls = lse_up(ls, lbn + lW + log_up(w) + double(n - d) * lg);
+      }
+      large.push_back({s1, x, tail, exp_up(ls)});
+    }
+  }
+  Ingredient best;
+  for (int ji = 0; ji < NJ; ++ji)
+    for (auto& L : large) {
+      int s1 = std::min(L.s1, S);
+      double val = c.log2m_up + pm[ji][s1] + L.tail + c.invQD_up * (pc[ji][s1] + L.pl);
+      if (val < best.value)
+        best = {val, "j=" + std::to_string(CYL_JS[ji]) + " s1=" + std::to_string(L.s1) + " x=" + fmt(L.x) +
+                         (u64(L.s1) == m ? " (s1=m)" : "")};
+    }
+  c.cyl = best;
+}
+
 void ingredient_explicit(Cell& c) {
   u64 m = c.m;
   long n = c.n;
@@ -367,9 +526,10 @@ Cell evaluate(long n, u64 m, bool use_exact) {
   ingredient_fixed(c);
   ingredient_union(c);
   ingredient_explicit(c);
+  ingredient_cylinder(c);
 
   std::pair<const char*, Ingredient*> all[] = {
-      {"exact", &c.exact}, {"fixed", &c.fixed}, {"union", &c.uni}, {"explicit", &c.expl}, {"trivial", &c.trivial}};
+      {"exact", &c.exact}, {"fixed", &c.fixed}, {"union", &c.uni}, {"explicit", &c.expl}, {"cylinder", &c.cyl}, {"trivial", &c.trivial}};
   c.tplus = INF;
   for (auto [name, ing] : all) {
     if (ing->value < c.tplus) {
@@ -382,7 +542,7 @@ Cell evaluate(long n, u64 m, bool use_exact) {
 }
 
 std::string csv_header() {
-  return "n,m,tplus,tplus_minus_log2m,ingredient,params,exact,trivial,fixed,union,union_params,explicit,explicit_params";
+  return "n,m,tplus,tplus_minus_log2m,ingredient,params,exact,trivial,fixed,union,union_params,explicit,explicit_params,cylinder,cylinder_params";
 }
 
 std::string opt(const Ingredient& i) { return i.value == INF ? "" : fmt(i.value); }
@@ -390,9 +550,10 @@ std::string opt(const Ingredient& i) { return i.value == INF ? "" : fmt(i.value)
 std::string csv_row(const Cell& c) {
   std::string r = std::to_string(c.n) + "," + std::to_string(c.m) + "," + fmt(c.tplus) + ",";
   r += (c.m == 1 ? std::string("0") : fmt(c.tplus - c.log2m_dn)) + "," + c.winner + "," + c.params + ",";
-  if (c.m == 1) return r + ",,,,,,";
+  if (c.m == 1) return r + ",,,,,,,,";
   r += opt(c.exact) + "," + opt(c.trivial) + "," + opt(c.fixed) + "," + opt(c.uni) + "," + c.uni.params + ",";
-  r += opt(c.expl) + "," + c.expl.params;
+  r += opt(c.expl) + "," + c.expl.params + ",";
+  r += opt(c.cyl) + "," + c.cyl.params;
   return r;
 }
 
@@ -454,6 +615,18 @@ int main(int argc, char** argv) {
     show("(c) fixed-m  ", c.fixed);
     show("(d) union    ", c.uni);
     show("(e) explicit ", c.expl);
+    show("(f) cylinder ", c.cyl);
+    return 0;
+  }
+  if (args[0] == "kappa" && args.size() == 4) {  // kappa(s), s = 2..min(m, S1MAX), of ingredient (f) for j
+    long n = std::stol(args[1]);
+    u64 m = std::stoull(args[2]);
+    std::vector<int> out;
+    KAPPA_OUT = &out;
+    KAPPA_J = std::stoi(args[3]);
+    if (n < 1 || !defined(n, m)) return 2;
+    evaluate(n, m, false);
+    for (std::size_t i = 0; i < out.size(); ++i) std::cout << i + 2 << " " << out[i] << "\n";
     return 0;
   }
   if (args[0] == "cells") {

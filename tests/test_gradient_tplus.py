@@ -70,7 +70,7 @@ def test_doctests():
 def test_grid_cells():
     g = grid()
     assert set(g) == {(n, m) for n in NS for m in MS if m <= 2**n}
-    ingredients = ("exact", "trivial", "fixed", "union", "explicit")
+    ingredients = ("exact", "trivial", "fixed", "union", "explicit", "cylinder")
     for (n, m), r in g.items():
         t = Fraction(r["tplus"])
         if m == 1:
@@ -159,6 +159,35 @@ def test_union_against_intervals_slow(cell):
     _union(cell)
 
 
+def _kappa(n, m, j):
+    out = engine("kappa", n, m, j).split()
+    return [0, 0] + [int(v) for v in out[1::2]]
+
+
+def _cylinder(cell):
+    r = grid()[cell]
+    p = parse_params(r["cylinder_params"])
+    s1 = int(p["s1"])
+    kap = _kappa(*cell, int(p["j"]))[: min(s1, cell[1]) + 1]
+    check(r["cylinder"], gt.cylinder_bound(*cell, kap, s1, float(p["x"])))
+
+
+CYLINDER_SAMPLE = [(8, 64), (12, 64), (16, 24), (32, 48), (10, 256), (12, 512)]
+CYLINDER_SLOW = [(24, 4096), (48, 4096), (48, 2**20)]
+
+
+@pytest.mark.parametrize("cell", CYLINDER_SAMPLE)
+def test_cylinder_against_intervals(cell):
+    """Any requirement gives a valid bound, so the engine's requirement is checked as it is."""
+    _cylinder(cell)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("cell", CYLINDER_SLOW)
+def test_cylinder_against_intervals_slow(cell):
+    _cylinder(cell)
+
+
 def test_explicit_against_intervals():
     with open(DATA / "gradient_constants.csv", newline="") as f:
         ck = {int(r["K"]): Fraction(r["c_K_upper"]) + Fraction(1, 10**8) for r in csv.DictReader(f)}
@@ -181,17 +210,21 @@ def test_where_each_ingredient_wins():
     win = {}
     for key, r in g.items():
         win.setdefault(r["ingredient"], set()).add(key)
-    assert set(win) == {"m=1", "exact", "fixed", "union", "trivial"}  # (e) never wins
+    assert set(win) == {"m=1", "exact", "fixed", "union", "cylinder", "trivial"}  # (e) never wins
     for (n, m), r in g.items():
         if m == 1:
             continue
         lm = math.log2(m)
         if (n, m) in ex:
             assert r["ingredient"] == "exact"
-        elif n >= 4 * m**1.5:
+        elif n >= 5 * m**1.5:
             assert r["ingredient"] == "fixed"
         elif n >= 2 * lm and r["ingredient"] != "fixed":
-            assert r["ingredient"] == "union" and m >= 6
+            assert m >= 6
+            if r["ingredient"] == "union":  # a tie
+                assert n == 2**20 and Fraction(r["union"]) == Fraction(r["cylinder"])
+            else:
+                assert r["ingredient"] == "cylinder"
         if r["ingredient"] == "fixed":
             assert n >= m**1.5 / 2
         if r["ingredient"] == "trivial":
@@ -200,6 +233,8 @@ def test_where_each_ingredient_wins():
             assert Fraction(r["trivial"]) == n and Fraction(r["tplus"]) == n
         if r["explicit"]:
             assert Fraction(r["union"]) <= Fraction(r["explicit"])
+    assert len(win["union"]) == 4
+    assert sum(1 for n, m in win["cylinder"] if n < 2 * math.log2(m)) == 18
 
 
 def test_weak_region():
@@ -210,14 +245,32 @@ def test_weak_region():
             continue
         v = Fraction(r["tplus_minus_log2m"])
         lm = math.log2(m)
-        if m >= 2**12 and lm < n <= 3 * lm:
-            assert v > 1
-        if m >= 2**12 and lm < n <= 32 * lm:
-            assert v > Fraction(1, 10)
+        if m >= 2**12 and lm < n <= 2 * lm:
+            assert v > Fraction(55, 100)
+        if m >= 2**12 and 2 * lm < n <= 3 * lm:
+            assert Fraction(32, 100) < v < Fraction(54, 100)
+        if m >= 2**12 and 3 * lm < n <= 8 * lm:
+            assert Fraction(12, 100) < v < Fraction(32, 100)
         if m >= 2**16 and lm < n < 2 * lm:
             assert r["ingredient"] == "trivial"
-        if n >= 128 * lm:
-            assert v <= Fraction(9, 100)
+        if n >= 2 * lm:
+            assert v < Fraction(59, 100)
+        if n >= 8 * lm:
+            assert v < Fraction(13, 100)
+        if n >= 16 * lm:
+            assert v <= Fraction(89, 1000)
+    r = g[24, 2**12]  # (d) alone against t^+, rounded up as in the table
+    assert Fraction(r["union"]) - 12 > Fraction(2743, 1000) and Fraction(r["tplus_minus_log2m"]) <= Fraction(555, 1000)
+    assert r["ingredient"] == "cylinder"
+
+
+def test_small_forks_split_one_to_three():
+    """At n = 3 log m the winning requirement of (f) allows 1:3 splits of four columns."""
+    for cell in [(36, 2**12), (60, 2**20)]:
+        out = engine("cell", *cell)
+        line = next(x for x in out.splitlines() if "(f)" in x)
+        j = int(line.split("j=")[1].split()[0])
+        assert _kappa(*cell, j)[4] == 1
 
 
 def test_article_table_is_generated():

@@ -12,6 +12,7 @@ The ingredients (see the engine's header and the article):
 - :func:`fixed_bound` -- Theorem fixed-m;
 - :func:`union_bound` -- Proposition union with requirement `\kappa_j`;
 - :func:`explicit_bound` -- Corollary explicit;
+- :func:`cylinder_bound` -- Proposition cylinder, for a given requirement;
 - :func:`trivial_bound` -- `\min(n, C_{\max}(m))`.
 
 Each returns an ``iv.mpf`` interval that contains the stated bound.
@@ -44,6 +45,7 @@ __all__ = [
     "kappa_tau",
     "union_bound",
     "explicit_bound",
+    "cylinder_bound",
 ]
 
 PREC = 160
@@ -157,19 +159,27 @@ def kappa_tau(n, m, j, smax):
     return kap
 
 
-def _rho_upper(kappa, smax):
+def _rho_upper(kappa, smax, bar=False):
+    """Upper endpoints of rho_kappa(s), s <= smax; with ``bar``, also those of the maximum over the
+    splits k < kappa(s) (0 if there is none)."""
     one = iv.mpf(1)
     ln2 = iv.log(2)
     up = [iv.mpf(0)] * (smax + 1)
+    rbar = [iv.mpf(0)] * (smax + 1)
     for s in range(2, smax + 1):
         best = iv.mpf(0)
-        for k in range(kappa[s], s // 2 + 1):
+        for k in range(1, s // 2 + 1):
+            if k < kappa[s] and not bar:
+                continue
             x = iv.mpf(k) / s
             y = one - x
             v = one + (x * iv.log(x) + y * iv.log(y)) / ln2 + x * up[k] + y * up[s - k]
-            best = iv.mpf(max(best.b, v.b))
+            if k < kappa[s]:
+                rbar[s] = iv.mpf(max(rbar[s].b, v.b))
+            else:
+                best = iv.mpf(max(best.b, v.b))
         up[s] = best
-    return up
+    return (up, rbar) if bar else up
 
 
 def union_bound(n, m, j, s1, x):
@@ -225,3 +235,65 @@ def explicit_bound(n, m, cK):
     if m > 500:
         err += iv.mpf(2) ** -10
     return _log2(m) + _iv(Fraction(cK)) + err * inv_distinct(n, m)
+
+
+NCYL = 4096
+
+
+def _cmax_iv(s):
+    return _iv(_cmax(s)) - _log2(s)
+
+
+def cylinder_bound(n, m, kappa, s1, x):
+    r"""
+    Return the bound of Proposition cylinder as an interval, for the requirement ``kappa``
+    (a list indexed by `s \le \min(s_1, m)`) below `s_1`.
+
+    The expected number of failing forks of size `s` is bounded by the least of the sum over
+    sets and, for `n \le 4096` as in the engine, the sum over cylinders. If `s_1 \ge m`, no fork
+    is large.
+
+    EXAMPLES::
+
+        >>> kap = [0, 0, 1, 1, 2, 2, 3, 3, 4]
+        >>> b = cylinder_bound(64, 8, kap, 8, 0.4)
+        >>> 3.0817 < float(b.a) <= float(b.b) < 3.0818
+        True
+    """
+    iv.prec = PREC
+    S = min(s1, m)
+    rho, rbar = _rho_upper(kappa, S, bar=True)
+    mrho = max(r.b for r in rho[1:])
+    two = iv.mpf(2)
+    small = iv.mpf(0)
+    for s in range(4, S + 1):
+        k = kappa[s]
+        if k < 2:
+            continue
+        f = _iv(_fail(s, k))
+        p = comb(m, s) * f**n
+        if n <= NCYL:
+            cyl = f**n if s == m else iv.mpf(0)
+            for d in range(1, n):
+                q = two**-d
+                cyl += comb(n, d) * two**d * comb(m, s) * q**s * (1 - q) ** (m - s) * f ** (n - d)
+            p = iv.mpf(min(p.b, cyl.b))
+        small += iv.mpf(s) / m * rbar[s] * p
+    tail = iv.mpf(0)
+    large = iv.mpf(0)
+    if m > s1:
+        xi = iv.mpf(x)
+        theta = iv.mpf(0.5) + iv.sqrt(xi / s1)
+        assert theta.b < 1 and x > math.log(2) / 2
+        tail = 4 * xi / (s1 * (1 - theta))
+        dstar = int(math.floor((iv.log(iv.mpf(m) / s1) / -iv.log(theta)).b))
+        g = 2 * iv.exp(-2 * xi)
+        bs = comb(m, s1 + 1)
+        for d in range(0, min(dstar, n - 1) + 1):
+            sd = min(m, int(math.floor((theta**d * m).b)))
+            if sd < 2:
+                continue
+            w = iv.mpf(sd) * _cmax_iv(sd) / m
+            cnt = iv.mpf(min(iv.mpf(1).b, (bs * two ** (-d * (s1 + 1))).b))
+            large += comb(n, d) * two**d * cnt * w * g ** (n - d)
+    return _log2(m) + iv.mpf(mrho) + tail + inv_distinct(n, m) * (small + large)

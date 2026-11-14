@@ -215,7 +215,7 @@ def tex() -> None:
 TPLUS_ENGINE = Path(__file__).resolve().parents[1] / "build" / "cpp" / "gradient_tplus"
 TPLUS_NS = [6, 8, 12, 16, 24, 32, 48, 64, 128, 256, 1024, 2**16, 2**20]
 TPLUS_MS = [4, 8, 12, 16, 24, 32, 64, 256, 1024, 2**12, 2**16, 2**20, 2**24, 2**32]
-TPLUS_MARK = {"exact": "a", "trivial": "b", "fixed": "c", "union": "d", "explicit": "e"}
+TPLUS_MARK = {"exact": "a", "trivial": "b", "fixed": "c", "union": "d", "explicit": "e", "cylinder": "f"}
 
 
 def power_label(v: int) -> str:
