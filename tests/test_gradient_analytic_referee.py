@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MIT
 """Referee probes for the analytic gradient-key steps.
 
 See articles/gradient-bound/analytic/REFEREE.md. Independent re-implementations

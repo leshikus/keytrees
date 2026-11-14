@@ -27,7 +27,7 @@ EXAMPLES::
     >>> 0.0860 < float(GAMMA.a) <= float(GAMMA.b) < 0.0861
     True
 """
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 import math

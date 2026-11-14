@@ -21,3 +21,6 @@ foreach(source IN LISTS engine_sources)
   get_filename_component(engine ${source} NAME_WE)
   add_executable(${engine} ${source})
 endforeach()
+
+# gradient_tplus relies on the upward rounding mode set at run time.
+set_source_files_properties(gradient_tplus.cpp PROPERTIES COMPILE_OPTIONS -frounding-math)

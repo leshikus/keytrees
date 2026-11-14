@@ -24,7 +24,7 @@
 //                              precision; with "charge" a group without a
 //                              splitting row costs 1
 //
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: MIT
 #include <algorithm>
 #include <atomic>
 #include <bit>

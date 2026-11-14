@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MIT
 """Checks for Step 7 of the analytic gradient-key plan (n below 2 log m).
 
 See articles/gradient-bound/analytic/07-below-2log.tex. Exact enumeration over

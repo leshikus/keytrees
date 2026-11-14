@@ -4,7 +4,7 @@ All matrices (including those with equal columns) are enumerated, in rational
 arithmetic, so nothing here is sampled. A matrix is a tuple of n row masks; bit c
 of a mask is the entry in column c. Rows are indexed from 0.
 """
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 import itertools
